@@ -39,31 +39,31 @@ async function searchRecipes(keyword) {
 
 //สร้างฟังก์ชันแสดงผล
 function displayRecipes(meals) {
-    // ล้างข้อมูลเก่า
-    resultsGrid.innerHTML = "";
-
-    //ตรวจสอบข้อมูล
+    const resultsGrid = document.getElementById('results-grid');
+    
     if (!meals) {
-        resultsGrid.innerHTML = "<p>No recipes found.</p>";
+        resultsGrid.innerHTML = '<p class="status-message">No recipes found.</p>';
         return;
     }
-
-    //วนลูปและสร้าง Element
-    meals.forEach((meal) => {
-        const mealDiv = document.createElement("div");
-        mealDiv.classList.add("meal-card");
-
-        //สร้าง Meal Card
-        mealDiv.innerHTML = `
-      <img src="${meal.strMealThumb}" alt="${meal.strMeal}">
-      <h3>${meal.strMeal}</h3>
-      <h3>Category: ${meal.strCategory}</h3>
-      <h3>Area: ${meal.strArea}</h3>
-      <h3><a href="${meal.strSource || '#'}" target="_blank">View Recipe</a></h3>
-    `;
-
-        resultsGrid.appendChild(mealDiv);
+    
+    resultsGrid.innerHTML = '';
+    
+    meals.forEach(meal => {
+        // สร้าง meal card พร้อม data-meal-id
+        const mealCard = document.createElement('div');
+        mealCard.className = 'meal-card';
+        mealCard.setAttribute('data-meal-id', meal.idMeal); // สำคัญ!
+        mealCard.style.cursor = 'pointer'; // แสดงว่าคลิกได้
+        
+        mealCard.innerHTML = `
+            <img src="${meal.strMealThumb}" alt="${meal.strMeal}">
+            <h3>${meal.strMeal}</h3>
+        `;
+        
+        resultsGrid.appendChild(mealCard);
     });
+    
+    console.log('แสดงผลลัพธ์:', meals.length, 'รายการ');
 }
 
 
@@ -72,14 +72,16 @@ function displayRecipes(meals) {
 let mealDetailsSection = null;
 let resultsContainer = null;
 
-// Function เพื่อ initialize DOM elements
+// อัปเดตฟังก์ชัน initializeDOMElements
 function initializeDOMElements() {
     mealDetailsSection = document.getElementById('meal-details-section');
     resultsContainer = document.getElementById('results-container');
     
-    // Test ว่า elements ถูกเลือกมาได้หรือไม่
-    console.log('Meal details section:', mealDetailsSection);
-    console.log('Results container:', resultsContainer);
+    // ติดตั้ง event handlers
+    setupMealCardClickHandlers();
+    setupBackButtonHandler();
+    
+    console.log('Initialize DOM elements และ event handlers เสร็จแล้ว');
 }
 
 // Function สำหรับแสดงหน้ารายละเอียด
@@ -101,3 +103,56 @@ function showSearchPage() {
 document.addEventListener('DOMContentLoaded', initializeDOMElements);
 
 
+// Event delegation สำหรับจับการคลิกที่ meal cards
+function setupMealCardClickHandlers() {
+    const resultsGrid = document.getElementById('results-grid');
+    
+    resultsGrid.addEventListener('click', function(event) {
+        console.log('คลิกที่:', event.target);
+        
+        // หา meal card ที่ใกล้ที่สุด
+        const mealCard = event.target.closest('.meal-card');
+        
+        if (mealCard) {
+            const mealId = mealCard.getAttribute('data-meal-id');
+            console.log('คลิกที่ meal ID:', mealId);
+            
+            if (mealId) {
+                // เรียกฟังก์ชันเพื่อโหลดรายละเอียด
+                loadMealDetails(mealId);
+            }
+        }
+    });
+    
+    console.log('ติดตั้ง event listener สำหรับ meal cards แล้ว');
+}
+
+
+function setupBackButtonHandler() {
+    const backButton = document.getElementById('back-to-search-btn');
+    
+    if (backButton) {
+        backButton.addEventListener('click', function() {
+            console.log('กดปุ่มกลับ');
+            showSearchPage();
+        });
+        
+        console.log('ติดตั้ง event listener สำหรับปุ่มกลับแล้ว');
+    }
+}
+
+
+// Placeholder function สำหรับโหลดรายละเอียด (จะทำจริงในข้อต่อไป)
+function loadMealDetails(mealId) {
+    console.log('กำลังโหลดรายละเอียดสำหรับ meal ID:', mealId);
+    
+    // แสดงหน้ารายละเอียดก่อน (เพื่อทดสอบการทำงาน)
+    showMealDetailsPage();
+    
+    // แสดง loading state
+    document.getElementById('details-loading').classList.remove('hidden');
+    document.getElementById('meal-details-content').classList.add('hidden');
+    document.getElementById('details-error').classList.add('hidden');
+    
+    // TODO: จะเพิ่มการเรียก API จริงในข้อ 1.4
+}
