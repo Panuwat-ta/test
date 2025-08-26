@@ -18,24 +18,30 @@ form.addEventListener("submit", (event) => {
 //สร้าง async function
 async function searchRecipes(keyword) {
     try {
-        //Loading State
         resultsGrid.innerHTML = "<p>Searching for recipes...</p>";
-        console.log("loading:", "โหลดอยู่รอแปป", resultsGrid.innerHTML);
-        const response = await fetch(
-            `https://www.themealdb.com/api/json/v1/1/search.php?s=${keyword}`
-        );
+        
+        let apiUrl = "";
+        // ถ้า keyword เป็นตัวเลข → ใช้ lookup API (ค้นหาด้วย id)
+        if (/^\d+$/.test(keyword)) {
+            apiUrl = `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${keyword}`;
+        } else {
+            // ถ้าไม่ใช่ตัวเลข → ใช้ search API (ค้นหาด้วยชื่อ)
+            apiUrl = `https://www.themealdb.com/api/json/v1/1/search.php?s=${keyword}`;
+        }
+
+        console.log("เรียก API:", apiUrl);
+
+        const response = await fetch(apiUrl);
         const data = await response.json();
 
-        //เรียกฟังก์ชันแสดงผล
         displayRecipes(data.meals);
-
         console.log("Response data:", data);
     } catch (error) {
         console.error("Error fetching data:", error);
-        //แสดงข้อผิดพลาด
         resultsGrid.innerHTML = "<p>An error occurred. Please try again later.</p>";
     }
 }
+
 
 //สร้างฟังก์ชันแสดงผล
 function displayRecipes(meals) {
@@ -142,17 +148,140 @@ function setupBackButtonHandler() {
 }
 
 
-// Placeholder function สำหรับโหลดรายละเอียด (จะทำจริงในข้อต่อไป)
-function loadMealDetails(mealId) {
-    console.log('กำลังโหลดรายละเอียดสำหรับ meal ID:', mealId);
+async function fetchMealDetails(mealId) {
+    console.log('กำลังดึงข้อมูลรายละเอียดสำหรับ ID:', mealId);
     
-    // แสดงหน้ารายละเอียดก่อน (เพื่อทดสอบการทำงาน)
+    const apiUrl = `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${mealId}`;
+    console.log('API URL:', apiUrl);
+    
+    try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        
+        console.log('ข้อมูลที่ได้จาก API:', data);
+        
+        if (data.meals && data.meals.length > 0) {
+            return data.meals[0]; // return meal object
+        } else {
+            throw new Error('ไม่พบข้อมูลอาหาร');
+        }
+    } catch (error) {
+        console.error('Error fetching meal details:', error);
+        throw error;
+    }
+}
+
+
+function processMealIngredients(meal) {
+    const ingredients = [];
+    
+    // วนลูปเพื่อรวบรวมส่วนผสมจาก strIngredient1-20 และ strMeasure1-20
+    for (let i = 1; i <= 20; i++) {
+        const ingredient = meal[`strIngredient${i}`];
+        const measure = meal[`strMeasure${i}`];
+        
+        // ตรวจสอบว่ามีส่วนผสมหรือไม่
+        if (ingredient && ingredient.trim() !== '') {
+            let ingredientText = '';
+            
+            if (measure && measure.trim() !== '') {
+                ingredientText = `${measure.trim()} ${ingredient.trim()}`;
+            } else {
+                ingredientText = ingredient.trim();
+            }
+            
+            ingredients.push(ingredientText);
+        }
+    }
+    
+    console.log('ส่วนผสมที่ประมวลผลแล้ว:', ingredients);
+    return ingredients;
+}
+
+
+function displayMealDetailsContent(meal) {
+    console.log('แสดงรายละเอียดของ:', meal.strMeal);
+    
+    const contentDiv = document.getElementById('meal-details-content');
+    const ingredients = processMealIngredients(meal);
+    
+    // สร้าง HTML สำหรับแสดงรายละเอียด
+    const detailsHTML = `
+        <div class="meal-header">
+            <div class="meal-image">
+                <img src="${meal.strMealThumb}" alt="${meal.strMeal}">
+            </div>
+            <div class="meal-info">
+                <h1>${meal.strMeal}</h1>
+                <p><strong>หมวดหมู่:</strong> ${meal.strCategory || 'ไม่ระบุ'}</p>
+                <p><strong>ประเทศ:</strong> ${meal.strArea || 'ไม่ระบุ'}</p>
+                ${meal.strTags ? `<p><strong>แท็ก:</strong> ${meal.strTags}</p>` : ''}
+            </div>
+        </div>
+        
+        <div class="ingredients-section">
+            <h2>🥘 ส่วนผสม</h2>
+            <ul class="ingredients-list">
+                ${ingredients.map(ingredient => `<li>${ingredient}</li>`).join('')}
+            </ul>
+        </div>
+        
+        <div class="instructions-section">
+            <h2>👨‍🍳 วิธีทำ</h2>
+            <div class="instructions-text">${meal.strInstructions || 'ไม่มีข้อมูลวิธีทำ'}</div>
+        </div>
+        
+        ${meal.strYoutube ? `
+            <div class="video-section">
+                <h2>📺 วิดีโอการทำ</h2>
+                <a href="${meal.strYoutube}" target="_blank" class="video-link">
+                    ดูวิดีโอใน YouTube
+                </a>
+            </div>
+        ` : ''}
+    `;
+    
+    contentDiv.innerHTML = detailsHTML;
+}
+
+
+async function loadMealDetails(mealId) {
+    console.log('เริ่มโหลดรายละเอียดสำหรับ meal ID:', mealId);
+    
+    // แสดงหน้ารายละเอียดและ loading state
     showMealDetailsPage();
     
-    // แสดง loading state
-    document.getElementById('details-loading').classList.remove('hidden');
-    document.getElementById('meal-details-content').classList.add('hidden');
-    document.getElementById('details-error').classList.add('hidden');
+    const loadingDiv = document.getElementById('details-loading');
+    const contentDiv = document.getElementById('meal-details-content');
+    const errorDiv = document.getElementById('details-error');
     
-    // TODO: จะเพิ่มการเรียก API จริงในข้อ 1.4
+    // แสดง loading, ซ่อนส่วนอื่น
+    loadingDiv.classList.remove('hidden');
+    contentDiv.classList.add('hidden');
+    errorDiv.classList.add('hidden');
+    
+    try {
+        // เรียก API
+        const meal = await fetchMealDetails(mealId);
+        
+        // แสดงรายละเอียด
+        displayMealDetailsContent(meal);
+        
+        // ซ่อน loading, แสดง content
+        loadingDiv.classList.add('hidden');
+        contentDiv.classList.remove('hidden');
+        
+    } catch (error) {
+        console.error('ไม่สามารถโหลดรายละเอียดได้:', error);
+        
+        // แสดง error message
+        errorDiv.textContent = `เกิดข้อผิดพลาด: ${error.message}`;
+        errorDiv.classList.remove('hidden');
+        loadingDiv.classList.add('hidden');
+    }
+}
+
+function testMealDetails() {
+    // ทดสอบด้วย Meal ID ที่รู้ว่ามีข้อมูล
+    loadMealDetails('52772'); // Teriyaki Chicken Casserole
 }
