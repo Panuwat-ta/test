@@ -67,3 +67,37 @@ function displayRecipes(meals) {
 }
 
 
+
+// Global variables สำหรับ DOM elements
+let mealDetailsSection = null;
+let resultsContainer = null;
+
+// Function เพื่อ initialize DOM elements
+function initializeDOMElements() {
+    mealDetailsSection = document.getElementById('meal-details-section');
+    resultsContainer = document.getElementById('results-container');
+    
+    // Test ว่า elements ถูกเลือกมาได้หรือไม่
+    console.log('Meal details section:', mealDetailsSection);
+    console.log('Results container:', resultsContainer);
+}
+
+// Function สำหรับแสดงหน้ารายละเอียด
+function showMealDetailsPage() {
+    if (resultsContainer) resultsContainer.style.display = 'none';
+    if (mealDetailsSection) mealDetailsSection.classList.remove('hidden');
+    
+    // Scroll to top
+    window.scrollTo(0, 0);
+}
+
+// Function สำหรับแสดงหน้าค้นหา
+function showSearchPage() {
+    if (mealDetailsSection) mealDetailsSection.classList.add('hidden');
+    if (resultsContainer) resultsContainer.style.display = 'block';
+}
+
+// เรียกใช้ initialize เมื่อ DOM โหลดเสร็จ
+document.addEventListener('DOMContentLoaded', initializeDOMElements);
+
+
